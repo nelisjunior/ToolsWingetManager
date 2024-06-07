@@ -1,8 +1,6 @@
-# Importa as funções do arquivo InstallWinGet.ps1
-. ".\InstallWinGet.ps1"
 
 # Função para exibir o menu e capturar a escolha do usuário
-function Show-Menu {
+function Show-Menu-Java {
     param (
         [string]$Title = 'Instalação/Atualização de Java'
     )
@@ -69,21 +67,6 @@ function Check-JavaVersions {
 }
 
 
-function Check-And-InstallWinGet {
-    # Verifica se o winget está instalado
-    $wingetInstalled = Get-Command winget -ErrorAction SilentlyContinue
-
-    if ($null -ne $wingetInstalled) {
-        Write-Output "winget já está instalado."
-        # Chama a função Update-WinGet
-        Update-WinGet
-    } else {
-        Write-Output "winget não está instalado."
-        # Chama a função InstallWinGet
-        InstallWinGet
-    }
-}
-
 
 # Função para instalar JDK e JRE usando winget
 function Install-JDKandJRE {
@@ -120,16 +103,15 @@ function Install-JDKandJRE {
 }
 
 # Função principal
-function Main {
-    # Verifica e instala/atualiza o winget
-    Check-And-InstallWinGet
+function MenuJava {
+    
     
     # Verifica as versões do Java instaladas
     Check-JavaVersions
 
     # Loop do menu principal
     do {
-        $choice = Show-Menu
+        $choice = Show-Menu-Java
 
         switch ($choice) {
             "1" {
@@ -154,7 +136,4 @@ function Main {
         }
     } while ($true)
 }
-
-# Chama a função principal
-Main
 
