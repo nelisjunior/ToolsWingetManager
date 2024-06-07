@@ -1,3 +1,6 @@
+# Importa as funções do arquivo InstallWinGet.ps1
+. ".\InstallWinGet.ps1"
+
 # Função para exibir o menu e capturar a escolha do usuário
 function Show-Menu {
     param (
@@ -17,11 +20,70 @@ function Show-Menu {
     return $choice
 }
 
-# Função para verificar versões instaladas do Java
 function Check-JavaVersions {
     Write-Host "Verificando versões instaladas de Java..."
-    # Incluir aqui a lógica para verificar as versões instaladas do Java
+
+    # Função auxiliar para verificar uma chave de registro específica
+    function Get-JavaVersionFromRegistry {
+        param (
+            [string]$RegistryPath
+        )
+        $javaVersions = @()
+        if (Test-Path $RegistryPath) {
+            $javaKeys = Get-ChildItem -Path $RegistryPath
+            foreach ($key in $javaKeys) {
+                $version = Get-ItemProperty -Path $key.PSPath -Name "JavaHome" -ErrorAction SilentlyContinue
+                if ($null -ne $version) {
+                    $javaVersions += [PSCustomObject]@{
+                        Version = $key.PSChildName
+                        Path    = $version.JavaHome
+                    }
+                }
+            }
+        }
+        return $javaVersions
+    }
+
+    # Checa versões do Java no registro do Windows
+    $javaRegistryPaths = @(
+        "HKLM:\SOFTWARE\JavaSoft\Java Runtime Environment",
+        "HKLM:\SOFTWARE\JavaSoft\Java Development Kit",
+        "HKLM:\SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment",
+        "HKLM:\SOFTWARE\WOW6432Node\JavaSoft\Java Development Kit"
+    )
+
+    $installedJavaVersions = @()
+    foreach ($path in $javaRegistryPaths) {
+        $installedJavaVersions += Get-JavaVersionFromRegistry -RegistryPath $path
+    }
+
+    # Exibe as versões encontradas
+    if ($installedJavaVersions.Count -eq 0) {
+        Write-Host "Nenhuma versão do Java foi encontrada."
+    } else {
+        Write-Host "Versões instaladas do Java:"
+        foreach ($version in $installedJavaVersions) {
+            Write-Host "Versão: $($version.Version), Caminho: $($version.Path)"
+        }
+    }
 }
+
+
+function Check-And-InstallWinGet {
+    # Verifica se o winget está instalado
+    $wingetInstalled = Get-Command winget -ErrorAction SilentlyContinue
+
+    if ($null -ne $wingetInstalled) {
+        Write-Output "winget já está instalado."
+        # Chama a função Update-WinGet
+        Update-WinGet
+    } else {
+        Write-Output "winget não está instalado."
+        # Chama a função InstallWinGet
+        InstallWinGet
+    }
+}
+
 
 # Função para instalar JDK e JRE usando winget
 function Install-JDKandJRE {
@@ -57,30 +119,42 @@ function Install-JDKandJRE {
     }
 }
 
-# Menu principal
-Check-JavaVersions
-do {
-    $choice = Show-Menu
+# Função principal
+function Main {
+    # Verifica e instala/atualiza o winget
+    Check-And-InstallWinGet
+    
+    # Verifica as versões do Java instaladas
+    Check-JavaVersions
 
-    switch ($choice) {
-        "1" {
-            Install-JDKandJRE "8"
+    # Loop do menu principal
+    do {
+        $choice = Show-Menu
+
+        switch ($choice) {
+            "1" {
+                Install-JDKandJRE "8"
+            }
+            "2" {
+                Install-JDKandJRE "11"
+            }
+            "3" {
+                Install-JDKandJRE "17"
+            }
+            "4" {
+                Install-JDKandJRE "21"
+            }
+            "0" {
+                Write-Host "Saindo..."
+                exit
+            }
+            default {
+                Write-Host "Escolha inválida, por favor tente novamente."
+            }
         }
-        "2" {
-            Install-JDKandJRE "11"
-        }
-        "3" {
-            Install-JDKandJRE "17"
-        }
-        "4" {
-            Install-JDKandJRE "21"
-        }
-        "0" {
-            Write-Host "Saindo..."
-            exit
-        }
-        default {
-            Write-Host "Escolha inválida, por favor tente novamente."
-        }
-    }
-} while ($true)
+    } while ($true)
+}
+
+# Chama a função principal
+Main
+
